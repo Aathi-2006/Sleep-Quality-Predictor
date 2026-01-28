@@ -1,0 +1,95 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+data = {
+    "Gender": ["Male", "Female", "Male", "Female", "Male", "Female"],
+    "Age": [25, 30, 45, 35, 28, 50],
+    "Occupation": ["Engineer", "Teacher", "Doctor", "Nurse", "Student", "Manager"],
+    "Sleep Duration": [6, 7, 5, 8, 6.5, 5.5],
+    "Physical Activity Level": [30, 40, 20, 50, 35, 25],
+    "Stress Level": [7, 5, 8, 4, 6, 7],
+    "BMI Category": ["Normal", "Normal", "Overweight", "Normal", "Normal", "Obese"],
+    "Blood Pressure": ["120/80", "110/70", "140/90", "115/75", "118/78", "145/95"],
+    "Heart Rate": [72, 70, 80, 68, 75, 85],
+    "Daily Steps": [6000, 8000, 4000, 9000, 6500, 5000],
+    "Sleep Disorder": ["None", "None", "Insomnia", "None", "None", "Apnea"],
+    "Quality of Sleep": [6, 7, 4, 8, 6, 5]
+}
+df = pd.DataFrame(data)
+print("Dataset Created Successfully\n")
+categorical_features = [
+    "Gender",
+    "Occupation",
+    "BMI Category",
+    "Blood Pressure",
+    "Sleep Disorder"
+]
+label_encoders = {}
+for col in categorical_features:
+    le = LabelEncoder()
+    df[col] = le.fit_transform(df[col])
+    label_encoders[col] = le
+X = df.drop(columns=["Quality of Sleep"])
+y = df["Quality of Sleep"]
+feature_columns = X.columns
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+print("Model Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n")
+print(classification_report(y_test, y_pred, zero_division=0))
+def predict_sleep_quality(user_data):
+    user_df = pd.DataFrame([user_data])
+
+    for col in categorical_features:
+        le = label_encoders[col]
+        if user_df[col][0] in le.classes_:
+            user_df[col] = le.transform(user_df[col])
+        else:
+            user_df[col] = le.transform([le.classes_[0]])
+
+    user_df = user_df[feature_columns]
+    user_scaled = scaler.transform(user_df)
+
+    return model.predict(user_scaled)[0]
+def sleep_quality_label(score):
+    if score <= 5:
+        return "Poor"
+    elif score <= 7:
+        return "Average"
+    else:
+        return "Good"
+def sleep_recommendation(label):
+    if label == "Poor":
+        return "Reduce stress and improve sleep routine."
+    elif label == "Average":
+        return "Maintain regular sleep schedule."
+    else:
+        return "Excellent sleep habits. Keep it up!"
+sample_user = {
+    "Gender": "Female",
+    "Age": 29,
+    "Occupation": "Teacher",
+    "Sleep Duration": 7,
+    "Physical Activity Level": 45,
+    "Stress Level": 5,
+    "BMI Category": "Normal",
+    "Blood Pressure": "110/70",
+    "Heart Rate": 70,
+    "Daily Steps": 8000,
+    "Sleep Disorder": "None"
+}
+score = predict_sleep_quality(sample_user)
+label = sleep_quality_label(score)
+print("\nPredicted Sleep Quality Score:", score)
+print("Sleep Quality Category:", label)
+print("Recommendation:", sleep_recommendation(label))
